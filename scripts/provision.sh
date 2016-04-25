@@ -6,7 +6,7 @@ ECHOWRAPPER="==============================================\n\n%s\n\n===========
 printf $ECHOWRAPPER "Installing GIT"
 apt-get install -y git 
 
-#GIT
+#SVN
 printf $ECHOWRAPPER "Installing Subversion"
 apt-get install -y subversion 
 
@@ -19,8 +19,8 @@ apt-get install -y percona-server-server
 
 #Apache2
 printf $ECHOWRAPPER "Installing Apache"
-apt-get install -y apache2 apache2-utils libapache2-mod-fastcgi
-a2enmod actions fastcgi alias rewrite
+apt-get install -y apache2 apache2-utils libapache2-mod-php5
+a2enmod actions php5 alias rewrite
 service apache2 restart
 
 
@@ -28,10 +28,36 @@ service apache2 restart
 printf $ECHOWRAPPER "Installing PHP"
 apt-get install -y php5 php5-dev php-pear autoconf automake curl \
                 php5-curl php5-gd php5-imagick php5-mysql php5-cli php5-mcrypt \
-                php5-xdebug
+                php5-xdebug php5-mcrypt
+
+# PHP konfigurieren
+printf $ECHOWRAPPER "Configuring PHP"
+cd ~
+wget https://github.com/frickelbruder/php-ini-setter/releases/download/1.1.1/php-ini-setter.phar
+chmod a+x php-ini-setter.phar
+./php-ini-setter.phar --name short_open_tags --value On --file /etc/php5/apache2/php.ini
+./php-ini-setter.phar --name memory_limit --value 512M --file /etc/php5/apache2/php.ini
+./php-ini-setter.phar --name log_errors --value On --file /etc/php5/apache2/php.ini
+./php-ini-setter.phar --name error_log --value /var/log/php_errors.log --file /etc/php5/apache2/php.ini
+./php-ini-setter.phar --name max_execution_time --value 120 --file /etc/php5/apache2/php.ini
+
+./php-ini-setter.phar --name short_open_tags --value On --file /etc/php5/cli/php.ini
+./php-ini-setter.phar --name memory_limit --value 512M --file /etc/php5/cli/php.ini
+./php-ini-setter.phar --name log_errors --value On --file /etc/php5/cli/php.ini
+./php-ini-setter.phar --name error_log --value /var/log/php_errors.log --file /etc/php5/cli/php.ini
+./php-ini-setter.phar --name max_execution_time --value 120 --file /etc/php5/cli/php.ini
+
+touch /var/log/php_errors.log
+chmod 0777 /var/log/php_errors.log
+
 
    
 ##PHPDEVELOPMENT
+
+###Phing
+pear channel-discover pear.phing.info
+pear install --alldeps phing/phing
+
 ###PHPUNIT
 printf $ECHOWRAPPER "Installing Phpunit"
 wget https://phar.phpunit.de/phpunit-old.phar
@@ -91,3 +117,27 @@ apt-get install -y nodejs
 #Bower
 printf $ECHOWRAPPER "Installing Bower"
 npm install -g bower
+
+#Jenkins installieren
+wget -q -O - https://jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
+echo deb http://pkg.jenkins-ci.org/debian binary/ > /etc/apt/sources.list.d/jenkins.list
+apt-get update
+apt-get -y install jenkins
+
+sed -i 's~<useSecurity>true</useSecurity>~<useSecurity>false</useSecurity>~' /var/lib/jenkins/config.xml
+sed -i 's~<version>1.0</version>~<version>2.0</version>~' /var/lib/jenkins/config.xml
+
+touch /var/lib/jenkins/.last_exec_version
+echo "2.0" > /var/lib/jenkins/upgraded
+chown jenkins.jenkins /var/lib/jenkins/.last_exec_version
+chown jenkins.jenkins /var/lib/jenkins/upgraded
+
+sed -i 's~-Djava.awt.headless=true~-Djava.awt.headless=true -Dhudson.diyChunking=false~'/etc/default/jenkins
+service jenkins restart
+wget http://127.0.0.1:8080/jnlpJars/jenkins-cli.jar
+java -jar jenkins-cli.jar -s http://127.0.0.1:8080/ install-plugin phing
+java -jar jenkins-cli.jar -s http://127.0.0.1:8080/ install-plugin subversion
+service jenkins restart
+
+exit 0;
+

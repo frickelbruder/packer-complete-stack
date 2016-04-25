@@ -27,7 +27,8 @@
         {
             "type": "shell",
             "inline": [
-                "sudo chmod a+w /etc/apache2/sites-available/000-default.conf"
+                "sudo chmod a+w /etc/apache2/sites-available/000-default.conf",
+                "sudo chmod a+w /etc/php5/mods-available/xdebug.ini"
              ]
         },
         {
@@ -38,12 +39,14 @@
         {
           "type": "file",
           "source": "files/xdebug.ini",  
-          "destination": "/etc/php5/conf.d/xdebug.ini"
+          "destination": "/etc/php5/mods-available/xdebug.ini"
         }, 
         {
             "type": "shell",
             "inline": [
-                "sudo chmod a-w /etc/apache2/sites-available/000-default.conf"
+                "sudo chmod a-w /etc/apache2/sites-available/000-default.conf",
+                "sudo chmod a-w /etc/php5/mods-available/xdebug.ini",
+                "sudo php5enmod -s apache2 xdebug"
              ]
         }
     ],
@@ -87,7 +90,7 @@
           {
               "type": "vagrant",
               "compression_level": 9,
-              "output": "vagrant/lamphpbrew.{{.Provider}}.box",
+              "output": "vagrant/complete-stack.{{.Provider}}.box",
               "keep_input_artifact": false,
               "vagrantfile_template": "parent/_Vagrantfile"
               
