@@ -1,0 +1,104 @@
+{
+    "variables": {
+        "cloud_token": "{{env `VAGRANT_CLOUD_TOKEN`}}",
+        "cloud_repo": "frickelbruder/complete-stack",
+        "version": "0.0.1",
+        "version_description": "initial"
+    } ,
+    "provisioners": [
+        {
+            "type": "shell",
+            "scripts": [
+                "parent/base/scripts/base.sh",
+                "parent/base/scripts/virtualbox.sh",
+                "parent/base/scripts/vagrant.sh",
+                "parent/base/scripts/dep.sh",
+                "parent/scripts/provision.sh",
+                "scripts/provision.sh",
+                "parent/base/scripts/cleanup.sh",
+                "parent/base/scripts/zerodisk.sh"
+            ],
+            "override": {
+                "virtualbox-iso": {
+                    "execute_command": "echo 'vagrant'|sudo -S bash '{{.Path}}'"
+                }
+            }
+        },    
+        {
+            "type": "shell",
+            "inline": [
+                "sudo chmod a+w /etc/apache2/sites-available/000-default.conf"
+             ]
+        },
+        {
+          "type": "file",
+          "source": "files/default.conf",  
+          "destination": "/etc/apache2/sites-available/000-default.conf"
+        },
+        {
+          "type": "file",
+          "source": "files/xdebug.ini",  
+          "destination": "/etc/php5/conf.d/xdebug.ini"
+        }, 
+        {
+            "type": "shell",
+            "inline": [
+                "sudo chmod a-w /etc/apache2/sites-available/000-default.conf"
+             ]
+        }
+    ],
+    "builders": [
+        {
+            "type": "virtualbox-iso",
+            "boot_command": [
+                "<esc><esc><enter><wait>",
+                "/install/vmlinuz noapic preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg ",
+                "debian-installer=en_US auto locale=en_US kbd-chooser/method=de ",
+                "hostname=clean-ubuntu-box ",
+                "fb=false debconf/frontend=noninteractive ",
+                "keyboard-configuration/modelcode=pc105 keyboard-configuration/layoutcode=de keyboard-configuration/variantcode=nodeadkeys console-setup/ask_detect=false ",
+                "initrd=/install/initrd.gz -- <enter>"
+            ],
+            "vboxmanage": [
+              ["modifyvm", "{{.Name}}", "--vram", "32"],
+              ["modifyvm", "{{.Name}}", "--memory", 2048],
+              ["modifyvm", "{{.Name}}", "--natdnshostresolver1", "on"]
+            ],
+            "headless": true,
+            "output_directory": "vm",
+            "boot_wait": "10s",
+            "disk_size": 20480,
+            "guest_os_type": "Ubuntu_64",
+            "http_directory": "parent/base/http",
+            "iso_checksum": "2ac1f3e0de626e54d05065d6f549fa3a",
+            "iso_checksum_type": "md5",
+            "iso_url": "http://releases.ubuntu.com/14.04.4/ubuntu-14.04.4-server-amd64.iso",
+            "ssh_username": "vagrant",
+            "ssh_password": "vagrant",
+            "ssh_port": 22,
+            "ssh_wait_timeout": "10000s",
+            "shutdown_command": "echo '/sbin/halt -h -p' > shutdown.sh; echo 'vagrant'|sudo -S bash 'shutdown.sh'",
+            "guest_additions_path": "VBoxGuestAdditions_{{.Version}}.iso",
+            "virtualbox_version_file": ".vbox_version"
+        }
+    ],
+    "_post-processors": [
+      [
+          {
+              "type": "vagrant",
+              "compression_level": 9,
+              "output": "vagrant/lamphpbrew.{{.Provider}}.box",
+              "keep_input_artifact": false,
+              "vagrantfile_template": "parent/_Vagrantfile"
+              
+          },
+          {
+              "type": "vagrant-cloud",
+              "box_tag": "{{user `cloud_repo`}}",
+              "access_token": "{{user `cloud_token`}}",
+              "version": "{{user `version`}}",
+              "version_description": "{{user `version_description`}}"
+          }
+      ]
+    ]
+}
