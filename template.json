@@ -6,7 +6,7 @@
         "version_description": "initial"
     } ,
     "provisioners": [
-        {
+        {       
             "type": "shell",
             "scripts": [
                 "parent/base/scripts/base.sh",
@@ -28,7 +28,8 @@
             "type": "shell",
             "inline": [
                 "sudo chmod a+w /etc/apache2/sites-available/000-default.conf",
-                "sudo chmod a+w /etc/php5/mods-available/xdebug.ini"
+                "sudo chmod a+w /etc/php5/mods-available/xdebug.ini",
+                "sudo chmod a+w /etc/php5/mods-available"
              ]
         },
         {
@@ -40,13 +41,20 @@
           "type": "file",
           "source": "files/xdebug.ini",  
           "destination": "/etc/php5/mods-available/xdebug.ini"
-        }, 
+        },
+                {
+          "type": "file",
+          "source": "files/ssh2.ini",  
+          "destination": "/etc/php5/mods-available/ssh2.ini"
+        },  
         {
             "type": "shell",
             "inline": [
                 "sudo chmod a-w /etc/apache2/sites-available/000-default.conf",
                 "sudo chmod a-w /etc/php5/mods-available/xdebug.ini",
-                "sudo php5enmod -s apache2 xdebug"
+                "sudo chmod a-w /etc/php5/mods-available",
+                "sudo php5enmod -s apache2 xdebug",
+                "sudo php5enmod ssh2"
              ]
         }
     ],
@@ -85,7 +93,7 @@
             "virtualbox_version_file": ".vbox_version"
         }
     ],
-    "_post-processors": [
+    "post-processors": [
       [
           {
               "type": "vagrant",

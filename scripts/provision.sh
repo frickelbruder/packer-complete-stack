@@ -21,8 +21,10 @@ apt-get install -y percona-server-server
 printf $ECHOWRAPPER "Installing Apache"
 apt-get install -y apache2 apache2-utils libapache2-mod-php5
 a2enmod actions php5 alias rewrite
+echo "umask 002" >> /etc/apache2/envvars
+usermod -g www-data vagrant
 service apache2 restart
-
+     
 
 #PHP
 printf $ECHOWRAPPER "Installing PHP"
@@ -49,14 +51,61 @@ chmod a+x php-ini-setter.phar
 
 touch /var/log/php_errors.log
 chmod 0777 /var/log/php_errors.log
-
-
    
 ##PHPDEVELOPMENT
 
 ###Phing
+printf $ECHOWRAPPER "Installing Phing"
+pear config-set preferred_state beta
 pear channel-discover pear.phing.info
 pear install --alldeps phing/phing
+
+###Pecl/SSH2
+printf $ECHOWRAPPER "Installing SSH2"
+apt-get install -y libssh2-1-dev
+pecl install ssh2
+
+#Jenkins installieren
+printf $ECHOWRAPPER "Installing Jenkins"
+wget -q -O - https://jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
+echo "deb http://pkg.jenkins-ci.org/debian binary/" > /etc/apt/sources.list.d/jenkins.list
+apt-get update
+apt-get -y install jenkins
+
+printf $ECHOWRAPPER "Trying to fix a Jenkins Cli-Problem"
+sed -i 's~-Djava.awt.headless=true~-Djava.awt.headless=true -Dhudson.diyChunking=false~' /etc/default/jenkins
+service jenkins restart
+printf $ECHOWRAPPER "Resting from the hard work"
+sleep 30
+
+printf $ECHOWRAPPER "Make Jenkins insecure to access the GUI without pw"
+sed -i 's~<useSecurity>true</useSecurity>~<useSecurity>false</useSecurity>~' ~jenkins/config.xml
+sed -i 's~<version>1.0</version>~<version>2.0</version>~' ~jenkins/config.xml
+
+touch ~jenkins/.last_exec_version
+echo "2.0" > ~jenkins/upgraded
+chown jenkins.jenkins ~jenkins/.last_exec_version
+chown jenkins.jenkins ~jenkins/upgraded
+
+service jenkins restart
+printf $ECHOWRAPPER "Resting from the hard work again"
+sleep 30
+
+printf $ECHOWRAPPER "Fetching Jenkins-CLI"
+wget http://127.0.0.1:8080/jnlpJars/jenkins-cli.jar
+sleep 10
+printf $ECHOWRAPPER "Installing Phing plugin"
+until java -jar jenkins-cli.jar -s http://127.0.0.1:8080/ install-plugin http://updates.jenkins-ci.org/latest/phing.hpi; do
+    printf $ECHOWRAPPER "Seems like jenkins doesn't like phing now. I'll give it another try in a few seconds"
+	sleep 20
+done
+
+printf $ECHOWRAPPER "Installing SVN plugin"
+until java -jar jenkins-cli.jar -s http://127.0.0.1:8080/ install-plugin http://updates.jenkins-ci.org/latest/subversion.hpi; do
+    printf $ECHOWRAPPER "Seems like jenkins doesn't like subversion now. I'll give it another try in a few seconds"
+	sleep 20
+done
+service jenkins restart
 
 ###PHPUNIT
 printf $ECHOWRAPPER "Installing Phpunit"
@@ -118,26 +167,8 @@ apt-get install -y nodejs
 printf $ECHOWRAPPER "Installing Bower"
 npm install -g bower
 
-#Jenkins installieren
-wget -q -O - https://jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
-echo deb http://pkg.jenkins-ci.org/debian binary/ > /etc/apt/sources.list.d/jenkins.list
-apt-get update
-apt-get -y install jenkins
 
-sed -i 's~<useSecurity>true</useSecurity>~<useSecurity>false</useSecurity>~' /var/lib/jenkins/config.xml
-sed -i 's~<version>1.0</version>~<version>2.0</version>~' /var/lib/jenkins/config.xml
 
-touch /var/lib/jenkins/.last_exec_version
-echo "2.0" > /var/lib/jenkins/upgraded
-chown jenkins.jenkins /var/lib/jenkins/.last_exec_version
-chown jenkins.jenkins /var/lib/jenkins/upgraded
-
-sed -i 's~-Djava.awt.headless=true~-Djava.awt.headless=true -Dhudson.diyChunking=false~'/etc/default/jenkins
-service jenkins restart
-wget http://127.0.0.1:8080/jnlpJars/jenkins-cli.jar
-java -jar jenkins-cli.jar -s http://127.0.0.1:8080/ install-plugin phing
-java -jar jenkins-cli.jar -s http://127.0.0.1:8080/ install-plugin subversion
-service jenkins restart
 
 exit 0;
 
