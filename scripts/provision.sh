@@ -20,9 +20,10 @@ apt-get install -y percona-server-server
 #Apache2
 printf $ECHOWRAPPER "Installing Apache"
 apt-get install -y apache2 apache2-utils libapache2-mod-php5
-a2enmod actions php5 alias rewrite
+a2enmod actions php5 alias rewrite ssl
 echo "umask 002" >> /etc/apache2/envvars
 usermod -g www-data vagrant
+a2enmod default-ssl
 service apache2 restart
      
 
@@ -35,15 +36,15 @@ apt-get install -y php5 php5-dev php-pear autoconf automake curl \
 # PHP konfigurieren
 printf $ECHOWRAPPER "Configuring PHP"
 cd ~
-wget https://github.com/frickelbruder/php-ini-setter/releases/download/1.1.1/php-ini-setter.phar
+wget https://github.com/frickelbruder/php-ini-setter/releases/download/1.1.2/php-ini-setter.phar
 chmod a+x php-ini-setter.phar
-./php-ini-setter.phar --name short_open_tags --value On --file /etc/php5/apache2/php.ini
+./php-ini-setter.phar --name short_open_tag --value On --file /etc/php5/apache2/php.ini
 ./php-ini-setter.phar --name memory_limit --value 512M --file /etc/php5/apache2/php.ini
 ./php-ini-setter.phar --name log_errors --value On --file /etc/php5/apache2/php.ini
 ./php-ini-setter.phar --name error_log --value /var/log/php_errors.log --file /etc/php5/apache2/php.ini
 ./php-ini-setter.phar --name max_execution_time --value 120 --file /etc/php5/apache2/php.ini
 
-./php-ini-setter.phar --name short_open_tags --value On --file /etc/php5/cli/php.ini
+./php-ini-setter.phar --name short_open_tag --value On --file /etc/php5/cli/php.ini
 ./php-ini-setter.phar --name memory_limit --value 512M --file /etc/php5/cli/php.ini
 ./php-ini-setter.phar --name log_errors --value On --file /etc/php5/cli/php.ini
 ./php-ini-setter.phar --name error_log --value /var/log/php_errors.log --file /etc/php5/cli/php.ini
@@ -101,7 +102,7 @@ until java -jar jenkins-cli.jar -s http://127.0.0.1:8080/ install-plugin http://
 done
 
 printf $ECHOWRAPPER "Installing SVN plugin"
-until java -jar jenkins-cli.jar -s http://127.0.0.1:8080/ install-plugin http://updates.jenkins-ci.org/latest/subversion.hpi; do
+until java -jar jenkins-cli.jar -s http://127.0.0.1:8080/ install-plugin subversion; do
     printf $ECHOWRAPPER "Seems like jenkins doesn't like subversion now. I'll give it another try in a few seconds"
 	sleep 20
 done

@@ -2,8 +2,8 @@
     "variables": {
         "cloud_token": "{{env `VAGRANT_CLOUD_TOKEN`}}",
         "cloud_repo": "frickelbruder/complete-stack",
-        "version": "0.0.1",
-        "version_description": "initial"
+        "version": "0.0.3",
+        "version_description": "Added config to php, added long running pma config, Added SSL-Host"
     } ,
     "provisioners": [
         {       
@@ -28,8 +28,10 @@
             "type": "shell",
             "inline": [
                 "sudo chmod a+w /etc/apache2/sites-available/000-default.conf",
+                "sudo chmod a+w /etc/apache2/sites-available/default-ssl.conf",
                 "sudo chmod a+w /etc/php5/mods-available/xdebug.ini",
-                "sudo chmod a+w /etc/php5/mods-available"
+                "sudo chmod a+w /etc/php5/mods-available",
+                "sudo chmod a+w /etc/phpmyadmin/conf.d"
              ]
         },
         {
@@ -37,10 +39,20 @@
           "source": "files/default.conf",  
           "destination": "/etc/apache2/sites-available/000-default.conf"
         },
+                {
+          "type": "file",
+          "source": "files/default-ssl.conf",  
+          "destination": "/etc/apache2/sites-available/default-ssl.conf"
+        },
         {
           "type": "file",
           "source": "files/xdebug.ini",  
           "destination": "/etc/php5/mods-available/xdebug.ini"
+        },
+                {
+          "type": "file",
+          "source": "files/everlasting_cookie.php",  
+          "destination": "/etc/phpmyadmin/conf.d/everlasting_cookie.php"
         },
                 {
           "type": "file",
@@ -51,8 +63,10 @@
             "type": "shell",
             "inline": [
                 "sudo chmod a-w /etc/apache2/sites-available/000-default.conf",
+                "sudo chmod a-w /etc/apache2/sites-available/default-ssl.conf",
                 "sudo chmod a-w /etc/php5/mods-available/xdebug.ini",
                 "sudo chmod a-w /etc/php5/mods-available",
+                "sudo chmod a-w /etc/phpmyadmin/conf.d",
                 "sudo php5enmod -s apache2 xdebug",
                 "sudo php5enmod ssh2"
              ]
@@ -99,7 +113,7 @@
               "type": "vagrant",
               "compression_level": 9,
               "output": "vagrant/complete-stack.{{.Provider}}.box",
-              "keep_input_artifact": false,
+              "keep_input_artifact": true,
               "vagrantfile_template": "parent/_Vagrantfile"
               
           },
